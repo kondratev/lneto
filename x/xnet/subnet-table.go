@@ -151,10 +151,7 @@ func (a *subnetTable) patchEgressMAC(frame []byte) {
 		binary.BigEndian.Uint16(frame[12:14]) != uint16(ethernet.TypeIPv4) {
 		return
 	}
-	efrm, _ := ethernet.NewFrame(frame)
-	if efrm.IsBroadcast() {
-		return // broadcast stays broadcast (e.g. DHCP discover).
-	}
+
 	// Server-side connections have no registered MAC; fill from passively learned entries.
 	_, dstIP, _, _, err := internal.GetIPAddr(frame[14:])
 	if err != nil {
@@ -163,6 +160,7 @@ func (a *subnetTable) patchEgressMAC(frame []byte) {
 	for i := range a.passivePeers {
 		v := &a.resolves4[i]
 		if internal.BytesEqual(v.ip[:], dstIP) {
+			efrm, _ := ethernet.NewFrame(frame)
 			*efrm.DestinationHardwareAddr() = [6]byte(v.mac)
 			return
 		}
